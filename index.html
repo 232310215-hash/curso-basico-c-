@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aprende C# viendo cómo funciona</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header>
+  <h1>Aprende C# viendo cómo funciona</h1>
+  <p>Escribe, prueba y observa qué pasa dentro del programa. Tres laboratorios visuales: variables, bucles y decisiones.</p>
+</header>
+<nav><a href="#vars">Variables</a><a href="#loop">Bucle for</a><a href="#cond">if / else</a></nav>
+<main>
+
+<section id="vars">
+  <h2>Laboratorio 1: variables</h2>
+  <p class="hint">Una variable es una caja con nombre y tipo que guarda un valor en la memoria. Declara varias y mira cómo se llenan.</p>
+  <div class="row">
+    <label>Tipo<select id="vType"><option>int</option><option>double</option><option>string</option><option>bool</option><option>char</option></select></label>
+    <label>Nombre<input id="vName" value="edad" size="10"></label>
+    <label>Valor<input id="vVal" value="15" size="10"></label>
+    <button id="vAdd">Declarar variable</button>
+    <button id="vClear" class="sec">Vaciar memoria</button>
+  </div>
+  <pre class="code" id="vCode">// Tu línea de código aparecerá aquí</pre>
+  <div class="err" id="vErr"></div>
+  <div class="memory" id="vMem"><div class="empty">La memoria está vacía. Declara tu primera variable.</div></div>
+</section>
+
+<section id="loop">
+  <h2>Laboratorio 2: el bucle for</h2>
+  <p class="hint">Un bucle repite instrucciones. Elige dónde empieza y termina, y observa cada vuelta (máximo 15).</p>
+  <div class="row">
+    <label>Inicio (i =)<input id="lStart" type="number" value="1" style="width:90px"></label>
+    <label>Fin (i &lt;=)<input id="lEnd" type="number" value="8" style="width:90px"></label>
+    <button id="lRun">Ejecutar</button>
+  </div>
+  <pre class="code" id="lCode"></pre>
+  <div class="err" id="lErr"></div>
+  <div class="track" id="lTrack"></div>
+  <div class="console" id="lOut">Salida de la consola…</div>
+</section>
+
+<section id="cond">
+  <h2>Laboratorio 3: decisiones con if / else</h2>
+  <p class="hint">El programa elige un camino según una condición. Mueve la calificación y mira qué rama se activa.</p>
+  <label>Calificación: <b id="cVal">70</b><input id="cRange" type="range" min="0" max="100" value="70"></label>
+  <div class="gauge"><i id="cPin"></i></div>
+  <pre class="code" id="cCode"></pre>
+  <div class="branches">
+    <div class="branch" id="bIf"><b>Rama if</b><br>La condición es verdadera</div>
+    <div class="branch" id="bElse"><b>Rama else</b><br>La condición es falsa</div>
+  </div>
+  <div class="console" id="cOut" style="margin-top:.8rem"></div>
+</section>
+
+</main>
+<footer>Material didáctico de C#. Prueba el código en tu IDE para verlo funcionar de verdad.</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+
+/* ---------- Variables ---------- */
+const rules = {
+  int:    v => /^-?\d+$/.test(v),
+  double: v => /^-?\d+(\.\d+)?$/.test(v),
+  string: () => true,
+  bool:   v => /^(true|false)$/.test(v),
+  char:   v => v.length === 1
+};
+function literal(t, v){
+  if (t === "string") return `<span class="s">"${esc(v)}"</span>`;
+  if (t === "char")   return `<span class="s">'${esc(v)}'</span>`;
+  if (t === "bool")   return `<span class="k">${v}</span>`;
+  return `<span class="n">${esc(v)}</span>`;
+}
+function preview(){
+  const t=$("vType").value, n=$("vName").value.trim()||"nombre", v=$("vVal").value;
+  $("vCode").innerHTML = `<span class="t">${t}</span> ${esc(n)} = ${literal(t,v)};`;
+}
+["vType","vName","vVal"].forEach(id => $(id).addEventListener("input", preview));
+$("vAdd").onclick = () => {
+  const t=$("vType").value, n=$("vName").value.trim(), v=$("vVal").value;
+  const err=$("vErr"); err.textContent="";
+  if(!/^[A-Za-z_]\w*$/.test(n)){ err.textContent="El nombre debe empezar con letra o _ y no llevar espacios."; return; }
+  if([...$("vMem").querySelectorAll(".name")].some(e=>e.textContent===n)){ err.textContent=`Error CS0128: ya existe una variable llamada '${n}'.`; return; }
+  if(!rules[t](v)){ err.textContent=`Error CS0029: el valor "${v}" no se puede convertir a ${t}.`; return; }
+  const mem=$("vMem"); const e=mem.querySelector(".empty"); if(e) e.remove();
+  const b=document.createElement("div"); b.className="box "+t;
+  b.innerHTML=`<div class="type">${t}</div><div class="val">${esc(t==="string"?'"'+v+'"':t==="char"?"'"+v+"'":v)}</div><div class="name">${esc(n)}</div>`;
+  mem.appendChild(b);
+};
+$("vClear").onclick = () => { $("vMem").innerHTML='<div class="empty">La memoria está vacía. Declara tu primera variable.</div>'; $("vErr").textContent=""; };
+preview();
+
+/* ---------- Bucle for ---------- */
+let timers=[];
+$("lRun").onclick = () => {
+  timers.forEach(clearTimeout); timers=[];
+  const a=parseInt($("lStart").value), b=parseInt($("lEnd").value);
+  const err=$("lErr"), track=$("lTrack"), out=$("lOut");
+  err.textContent=""; track.innerHTML=""; out.textContent="";
+  if(isNaN(a)||isNaN(b)){ err.textContent="Escribe números enteros."; return; }
+  if(b<a){ err.textContent="El bucle no se ejecuta ninguna vez porque la condición i <= "+b+" es falsa desde el inicio."; }
+  if(b-a>14){ err.textContent="Usa un rango de máximo 15 vueltas para verlo bien."; return; }
+  $("lCode").innerHTML=`<span class="k">for</span> (<span class="t">int</span> i = <span class="n">${a}</span>; i &lt;= <span class="n">${b}</span>; i++)\n{\n    Console.WriteLine(<span class="s">"Vuelta "</span> + i);\n}`;
+  const cells=[];
+  for(let i=a;i<=b;i++){ const c=document.createElement("div"); c.className="cell"; c.textContent=i; track.appendChild(c); cells.push(c); }
+  cells.forEach((c,k)=>{
+    timers.push(setTimeout(()=>{
+      if(k>0) cells[k-1].className="cell done";
+      c.className="cell now";
+      out.textContent += "Vuelta "+(a+k)+"\n";
+    }, 600*(k+1)));
+  });
+  timers.push(setTimeout(()=>{ if(cells.length){cells[cells.length-1].className="cell done";} out.textContent += "Fin: i vale "+(b+1)+" y ya no cumple i <= "+b+"."; }, 600*(cells.length+1)));
+};
+
+/* ---------- if / else ---------- */
+function cond(){
+  const n=+$("cRange").value;
+  $("cVal").textContent=n; $("cPin").style.left=n+"%";
+  $("cCode").innerHTML=`<span class="t">int</span> nota = <span class="n">${n}</span>;\n<span class="k">if</span> (nota &gt;= <span class="n">60</span>)\n{\n    Console.WriteLine(<span class="s">"Aprobado"</span>);\n}\n<span class="k">else</span>\n{\n    Console.WriteLine(<span class="s">"Reprobado"</span>);\n}`;
+  const ok=n>=60;
+  $("bIf").classList.toggle("on",ok); $("bElse").classList.toggle("on",!ok);
+  $("cOut").textContent = ok ? "Aprobado" : "Reprobado";
+}
+$("cRange").addEventListener("input",cond); cond();
+</script>
+</body>
+</html>
